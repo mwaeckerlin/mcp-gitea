@@ -1,0 +1,36 @@
+{
+  "name": "mcp-gitea",
+  "version": "1.0.0",
+  "description": "Standalone secure MCP Gitea server with server-side authentication.",
+  "main": "dist/server.js",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "tsx --test src/commands.test.ts src/disabled-tools.test.ts src/gitea-api-client.test.ts src/gitea-operations.test.ts src/server.test.ts src/tool-families.test.ts src/tools.test.ts src/validation.test.ts",
+    "dev": "tsx src/server.ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mwaeckerlin/mcp-gitea.git"
+  },
+  "keywords": [
+    "mcp",
+    "gitea",
+    "security",
+    "typescript"
+  ],
+  "author": "",
+  "license": "GPL-3.0-or-later",
+  "type": "module",
+  "bugs": {
+    "url": "https://github.com/mwaeckerlin/mcp-gitea/issues"
+  },
+  "homepage": "https://github.com/mwaeckerlin/mcp-gitea#readme",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "^25.6.0",
+    "tsx": "^4.21.0",
+    "typescript": "^6.0.3"
+  }
+}

@@ -5,6 +5,10 @@ import { REST_TOOL_FAMILY_NAMES, type RestToolFamilyName } from "./tool-families
 
 const OPERATION_REGISTRY = new Map(loadGiteaOperations().map((operation) => [operation.operationId, operation]));
 const PAGE_SIZE_KEYS = new Set(["per_page", "perPage", "first", "last", "limit", "pageSize"]);
+const MAX_PAGE_SIZE = 100;
+const DEFAULT_PAGE_SIZE = 30;
+const MAX_OFFSET = 10000;
+const DEFAULT_LIMIT = 50;
 
 export interface ServerConfig {
   giteaToken?: string;
@@ -22,7 +26,7 @@ function asObject(value: unknown, name: string): Record<string, unknown> {
 }
 
 function clampPageSize(value: number): number {
-  return Math.max(1, Math.min(100, Math.floor(value)));
+  return Math.max(1, Math.min(MAX_PAGE_SIZE, Math.floor(value)));
 }
 
 function clampPagination(value: unknown): unknown {
@@ -92,8 +96,8 @@ export function validateOperationListArguments(argumentsValue: unknown): { famil
   const limitRaw = args.limit;
   const offsetRaw = args.offset;
 
-  const limit = limitRaw === undefined ? 50 : typeof limitRaw === "number" ? clampPageSize(limitRaw) : NaN;
-  const offset = offsetRaw === undefined ? 0 : typeof offsetRaw === "number" && Number.isInteger(offsetRaw) && offsetRaw >= 0 ? Math.min(offsetRaw, 10000) : NaN;
+  const limit = limitRaw === undefined ? DEFAULT_LIMIT : typeof limitRaw === "number" ? clampPageSize(limitRaw) : NaN;
+  const offset = offsetRaw === undefined ? 0 : typeof offsetRaw === "number" && Number.isInteger(offsetRaw) && offsetRaw >= 0 ? Math.min(offsetRaw, MAX_OFFSET) : NaN;
 
   if (!Number.isFinite(limit)) {
     throw new McpError(ErrorCode.InvalidParams, "limit must be a positive integer");
@@ -133,7 +137,7 @@ export function validateRestCallArguments(toolName: RestToolFamilyName, argument
   const clampedParameters = clampPagination(parameters) as Record<string, unknown>;
 
   if (operation.parameterNames.includes("limit") && clampedParameters.limit === undefined) {
-    clampedParameters.limit = 30;
+    clampedParameters.limit = DEFAULT_PAGE_SIZE;
   }
 
   return {

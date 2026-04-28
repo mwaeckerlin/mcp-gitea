@@ -10,7 +10,7 @@ import { isHttpToolName, loadGatewayConfig, validateHttpToolArguments } from "./
 import { isReadonlyRpcToolName, runReadonlyRpcToolWithArguments } from "./readonly-rpc-tools.js";
 
 const MISSING_GITEA_TOKEN_MESSAGE =
-  "Gitea token is not configured, Gitea service is limited";
+  "Gitea token is not configured. Only read-only operations (GET/HEAD) are available. Set GITEA_TOKEN on the server to enable full functionality.";
 
 type ApiClient = Pick<GiteaApiClient, "callRestByOperationId">;
 

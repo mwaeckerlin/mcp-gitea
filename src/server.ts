@@ -196,7 +196,7 @@ export async function main(): Promise<void> {
   }
 
   if (config.mcpAuthToken) {
-    console.error("MCP endpoint authentication is enabled (MCP_AUTH_TOKEN is set).");
+    console.log("MCP endpoint authentication is enabled (MCP_AUTH_TOKEN is set).");
   }
 
   const httpServer = createServer((request, response) => {

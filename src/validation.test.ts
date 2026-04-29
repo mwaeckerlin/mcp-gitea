@@ -78,8 +78,6 @@ test("loadServerConfigFromEnv: whitespace-only MCP_AUTH_TOKEN treated as undefin
   assert.equal(config.mcpAuthToken, undefined);
 });
 
-
-
 // ─── validateOperationListArguments ──────────────────────────────────────────
 
 test("validateOperationListArguments: defaults limit to 50 and offset to 0", () => {

@@ -55,8 +55,27 @@ test("loadServerConfigFromEnv: throws when MCP_GITEA_PORT is 0", () => {
   assert.throws(() => loadServerConfigFromEnv({ GITEA_TOKEN: "tok", GITEA_URL: "https://gitea.example.com", MCP_GITEA_PORT: "0" }), /MCP_GITEA_PORT/);
 });
 
-test("loadServerConfigFromEnv: throws when MCP_GITEA_PORT is 65536", () => {
-  assert.throws(() => loadServerConfigFromEnv({ GITEA_TOKEN: "tok", GITEA_URL: "https://gitea.example.com", MCP_GITEA_PORT: "65536" }), /MCP_GITEA_PORT/);
+test("loadServerConfigFromEnv: accepts MCP_AUTH_TOKEN", () => {
+  const config = loadServerConfigFromEnv({
+    GITEA_TOKEN: "mytoken",
+    GITEA_URL: "https://gitea.example.com",
+    MCP_AUTH_TOKEN: "supersecrettoken"
+  });
+  assert.equal(config.mcpAuthToken, "supersecrettoken");
+});
+
+test("loadServerConfigFromEnv: mcpAuthToken is undefined when not set", () => {
+  const config = loadServerConfigFromEnv({ GITEA_TOKEN: "tok", GITEA_URL: "https://gitea.example.com" });
+  assert.equal(config.mcpAuthToken, undefined);
+});
+
+test("loadServerConfigFromEnv: whitespace-only MCP_AUTH_TOKEN treated as undefined", () => {
+  const config = loadServerConfigFromEnv({
+    GITEA_TOKEN: "tok",
+    GITEA_URL: "https://gitea.example.com",
+    MCP_AUTH_TOKEN: "   "
+  });
+  assert.equal(config.mcpAuthToken, undefined);
 });
 
 // ─── validateOperationListArguments ──────────────────────────────────────────

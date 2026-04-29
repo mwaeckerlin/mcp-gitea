@@ -12,6 +12,7 @@ const DEFAULT_LIMIT = 50;
 
 export interface ServerConfig {
   giteaToken?: string;
+  mcpAuthToken?: string;
   giteaUrl: string;
   host: string;
   port: number;
@@ -61,6 +62,7 @@ function parseDisabledTools(disabledToolsValue: string | undefined): ReadonlySet
 
 export function loadServerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): ServerConfig {
   const giteaToken = env.GITEA_TOKEN?.trim();
+  const mcpAuthToken = env.MCP_AUTH_TOKEN?.trim();
 
   const giteaUrl = env.GITEA_URL?.trim();
   if (!giteaUrl || giteaUrl.length === 0) {
@@ -78,6 +80,7 @@ export function loadServerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): S
 
   return {
     giteaToken: giteaToken && giteaToken.length > 0 ? giteaToken : undefined,
+    mcpAuthToken: mcpAuthToken && mcpAuthToken.length > 0 ? mcpAuthToken : undefined,
     giteaUrl,
     host,
     port,

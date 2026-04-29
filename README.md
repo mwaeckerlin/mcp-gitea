@@ -187,13 +187,44 @@ Tool: `gitea_organizations_rest`
 |---|---|---|
 | `GITEA_TOKEN` | no | Gitea API token (never passed to sandbox); if missing, server starts in degraded mode |
 | `GITEA_URL` | **yes** | Gitea instance base URL (e.g., `https://gitea.example.com`) |
+| `MCP_AUTH_TOKEN` | no | Shared secret for MCP endpoint authentication; if set, all MCP requests must supply this token via `Authorization: Bearer <token>` header or `?token=<token>` query parameter; `/healthz` is exempt |
 | `MCP_GITEA_HOST` | no | Bind host (default `0.0.0.0`) |
 | `MCP_GITEA_PORT` | no | Bind port (default `4000`) |
 | `DISABLE_TOOLS` | no | Comma-separated MCP tool names to disable |
 
+### Authentication setup (MCP_AUTH_TOKEN)
+
+When `MCP_AUTH_TOKEN` is set on the server, the sandbox must present the same token in every MCP request. The `/healthz` endpoint is always accessible without a token.
+
+**Server side** — generate and set the shared secret:
+
+```bash
+export MCP_AUTH_TOKEN=$(pwgen 40 1)
+```
+
+**Client side** — pass the token via HTTP header (recommended):
+
+```
+Authorization: Bearer <token>
+```
+
+Or via query parameter (alternative):
+
+```
+http://mcp-gitea:4000/?token=<token>
+```
+
+**Security considerations:**
+
+- Generate tokens with a cryptographically secure random source (e.g., `pwgen 40 1` or `openssl rand -hex 32`).
+- Rotate tokens periodically and whenever they may have been exposed.
+- Never commit tokens to source control.
+- Keep the token length ≥ 32 characters to resist brute-force attempts.
+- Without `MCP_AUTH_TOKEN` set, the server accepts all requests (backward-compatible default).
+
 ### Health status semantics
 
-- `GET /healthz` always returns HTTP `200` while the process is running.
+- `GET /healthz` always returns HTTP `200` while the process is running (authentication is not required for this endpoint).
 - With token configured: `{ "ok": true, "status": "ready", "giteaTokenConfigured": true }`
 - Without token: `{ "ok": true, "status": "degraded", "giteaTokenConfigured": false, "message": "..." }`
 - In degraded mode, `gitea_rest_list_operations` is filtered to read-only (`GET`/`HEAD`) operations.
@@ -203,6 +234,7 @@ Tool: `gitea_organizations_rest`
 | Variable | Required | Description |
 |---|---|---|
 | `MCP_GITEA_URL` | yes | URL where the sandbox MCP client reaches this server (e.g., `http://mcp-gitea:4000`) |
+| `MCP_AUTH_TOKEN` | no | Shared secret to present in MCP requests when the server requires authentication |
 
 ## Authentication
 
@@ -255,6 +287,7 @@ npm test
 | `Gitea resource not found or not accessible` | Missing permission or wrong resource | Validate owner/repo/resource access |
 | `Tool disabled by DISABLE_TOOLS` | Tool explicitly disabled | Remove from `DISABLE_TOOLS` or call different tool |
 | `GITEA_URL is required` | Server started without URL | Set `GITEA_URL` to your Gitea instance URL |
+| HTTP 401 `Valid MCP_AUTH_TOKEN required` | MCP endpoint auth required | Set `MCP_AUTH_TOKEN` on client to match server |
 
 ## SKILL
 

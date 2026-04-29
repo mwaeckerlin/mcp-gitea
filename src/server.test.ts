@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import type { IncomingMessage } from "node:http";
 import test from "node:test";
 import { McpError, ErrorCode } from "@modelcontextprotocol/sdk/types.js";
-import { runToolWithArguments } from "./server.js";
+import { runToolWithArguments, __testing } from "./server.js";
 import { getToolDefinitions, getOperationFamily, listOperationMappings } from "./tools.js";
 import { REST_TOOL_FAMILY_NAMES } from "./tool-families.js";
+
+const { extractRequestToken, isAuthTokenValid } = __testing;
 
 const mockedApiClient = {
   async callRestByOperationId(operationId: string, parameters: Record<string, unknown>) {
@@ -214,3 +217,72 @@ test("without token, listOperationMappings filters to only GET/HEAD operations",
     assert.ok(op.method === "GET" || op.method === "HEAD", `Expected GET/HEAD, got ${op.method}`);
   }
 });
+
+// ─── MCP_AUTH_TOKEN: extractRequestToken ─────────────────────────────────────
+
+function makeMockRequest(headers: Record<string, string>): IncomingMessage {
+  return { headers } as unknown as IncomingMessage;
+}
+
+test("extractRequestToken: returns token from Authorization Bearer header", () => {
+  const req = makeMockRequest({ authorization: "Bearer mysecrettoken" });
+  const url = new URL("http://localhost/");
+  assert.equal(extractRequestToken(req, url), "mysecrettoken");
+});
+
+test("extractRequestToken: returns token from ?token= query param", () => {
+  const req = makeMockRequest({});
+  const url = new URL("http://localhost/?token=querysecret");
+  assert.equal(extractRequestToken(req, url), "querysecret");
+});
+
+test("extractRequestToken: prefers Authorization header over query param", () => {
+  const req = makeMockRequest({ authorization: "Bearer headertoken" });
+  const url = new URL("http://localhost/?token=querytoken");
+  assert.equal(extractRequestToken(req, url), "headertoken");
+});
+
+test("extractRequestToken: returns undefined when no token provided", () => {
+  const req = makeMockRequest({});
+  const url = new URL("http://localhost/");
+  assert.equal(extractRequestToken(req, url), undefined);
+});
+
+test("extractRequestToken: returns undefined for non-Bearer Authorization header", () => {
+  const req = makeMockRequest({ authorization: "Basic dXNlcjpwYXNz" });
+  const url = new URL("http://localhost/");
+  assert.equal(extractRequestToken(req, url), undefined);
+});
+
+// ─── MCP_AUTH_TOKEN: isAuthTokenValid ─────────────────────────────────────────
+
+test("isAuthTokenValid: returns true when no mcpAuthToken configured", () => {
+  const req = makeMockRequest({});
+  const url = new URL("http://localhost/");
+  assert.equal(isAuthTokenValid(req, url, undefined), true);
+});
+
+test("isAuthTokenValid: returns true when correct token in Authorization header", () => {
+  const req = makeMockRequest({ authorization: "Bearer correcttoken" });
+  const url = new URL("http://localhost/");
+  assert.equal(isAuthTokenValid(req, url, "correcttoken"), true);
+});
+
+test("isAuthTokenValid: returns true when correct token in query param", () => {
+  const req = makeMockRequest({});
+  const url = new URL("http://localhost/?token=correcttoken");
+  assert.equal(isAuthTokenValid(req, url, "correcttoken"), true);
+});
+
+test("isAuthTokenValid: returns false when wrong token provided", () => {
+  const req = makeMockRequest({ authorization: "Bearer wrongtoken" });
+  const url = new URL("http://localhost/");
+  assert.equal(isAuthTokenValid(req, url, "correcttoken"), false);
+});
+
+test("isAuthTokenValid: returns false when no token provided but required", () => {
+  const req = makeMockRequest({});
+  const url = new URL("http://localhost/");
+  assert.equal(isAuthTokenValid(req, url, "correcttoken"), false);
+});
+

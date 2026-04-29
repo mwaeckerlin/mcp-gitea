@@ -23,6 +23,26 @@ function createApiClient(giteaUrl: string, giteaToken: string | undefined): ApiC
   return new GiteaApiClient(giteaUrl, giteaToken);
 }
 
+function extractRequestToken(request: IncomingMessage, requestUrl: URL): string | undefined {
+  const authHeader = request.headers.authorization;
+  if (authHeader) {
+    const match = /^Bearer\s+(\S+)$/i.exec(authHeader);
+    if (match) {
+      return match[1];
+    }
+  }
+  const tokenParam = requestUrl.searchParams.get("token");
+  return tokenParam ?? undefined;
+}
+
+function isAuthTokenValid(request: IncomingMessage, requestUrl: URL, mcpAuthToken: string | undefined): boolean {
+  if (!mcpAuthToken) {
+    return true;
+  }
+  const provided = extractRequestToken(request, requestUrl);
+  return provided === mcpAuthToken;
+}
+
 export async function runToolWithArguments(
   toolName: string,
   toolArguments: unknown,
@@ -122,7 +142,8 @@ async function handleMcpHttpRequest(
   response: ServerResponse,
   apiClient: ApiClient,
   disabledTools: ReadonlySet<string>,
-  giteaTokenConfigured: boolean
+  giteaTokenConfigured: boolean,
+  mcpAuthToken: string | undefined
 ): Promise<void> {
   const requestUrl = new URL(request.url ?? "/", `http://${request.headers.host ?? "localhost"}`);
 
@@ -142,6 +163,11 @@ async function handleMcpHttpRequest(
 
   if (requestUrl.pathname !== "/") {
     respondJson(response, 404, { error: "not_found", message: "Unknown endpoint" });
+    return;
+  }
+
+  if (!isAuthTokenValid(request, requestUrl, mcpAuthToken)) {
+    respondJson(response, 401, { error: "unauthorized", message: "Valid MCP_AUTH_TOKEN required" });
     return;
   }
 
@@ -169,8 +195,12 @@ export async function main(): Promise<void> {
     console.warn(`Warning: ${MISSING_GITEA_TOKEN_MESSAGE}`);
   }
 
+  if (config.mcpAuthToken) {
+    console.error("MCP endpoint authentication is enabled (MCP_AUTH_TOKEN is set).");
+  }
+
   const httpServer = createServer((request, response) => {
-    void handleMcpHttpRequest(request, response, apiClient, disabledTools, giteaTokenConfigured).catch((error: unknown) => {
+    void handleMcpHttpRequest(request, response, apiClient, disabledTools, giteaTokenConfigured, config.mcpAuthToken).catch((error: unknown) => {
       const message = error instanceof Error ? error.message : String(error);
       console.error(`HTTP request handling failed: ${message}`);
 
@@ -201,3 +231,5 @@ if (isDirectRun) {
     process.exit(1);
   });
 }
+
+export const __testing = { extractRequestToken, isAuthTokenValid };
